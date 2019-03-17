@@ -48,8 +48,8 @@ public class Robot extends IterativeRobot {
   DifferentialDrive drive;
  
   //pneumatics
-  DoubleSolenoid gearswitch, back, front, hatcher;
-  Solenoid single1;
+  DoubleSolenoid gearswitch, hatcher;
+  Solenoid vacrelease, front, back, vacthing;
   Compressor comp = new Compressor(0);
     
    //timer
@@ -64,10 +64,10 @@ public class Robot extends IterativeRobot {
   JoystickButton startlight1, stoplight, hatchgetter, regcam, limecam, frontclimb, backclimb;
   WPI_VictorSPX intakeR1, intakeL1;
 
-   //variable
+  //variable
   Double loop;
 
-   //objects for gearswitch
+  //objects for gearswitch
   Object forward, reverse;
  
   //Extra stuffs
@@ -76,7 +76,7 @@ public class Robot extends IterativeRobot {
   //Elevator
   CANSparkMax motor1, motor2, motor3;
     
-   //encoders
+  //encoders
   Encoder u1enc, u2enc, u3enc;
   CANEncoder backencoder, middleencoder, frontencoder;
 
@@ -180,14 +180,15 @@ public class Robot extends IterativeRobot {
       //solenoids
       gearswitch = new DoubleSolenoid(0, 1);
       hatcher = new DoubleSolenoid(2, 3);
-      single1 = new Solenoid(4);
-      front = new DoubleSolenoid(5, 6);
-      back = new DoubleSolenoid(7, 8);
+      vacrelease = new Solenoid(4);
+      front = new Solenoid(5);
+      back = new Solenoid(6);
+      vacthing = new Solenoid(7);
     
       //sparks
-      motor1 = new CANSparkMax(5, MotorType.kBrushless);//front
-      motor2 = new CANSparkMax(6, MotorType.kBrushless);//middle
-      motor3 = new CANSparkMax(7, MotorType.kBrushless);//back
+      motor1 = new CANSparkMax(7, MotorType.kBrushless);//front
+      motor2 = new CANSparkMax(9, MotorType.kBrushless);//middle
+      motor3 = new CANSparkMax(10, MotorType.kBrushless);//back
     
      
       //encoders
@@ -199,41 +200,6 @@ public class Robot extends IterativeRobot {
       u3enc.setReverseDirection(true);
 
 
-      //Drive Mode
-      if (loop == 2.0) {
-
-        //speed ramp
-        frontLeft.setOpenLoopRampRate(.3);
-        frontRight.setOpenLoopRampRate(.3);
-        rearLeft.setOpenLoopRampRate(.3);
-        rearRight.setOpenLoopRampRate(.3);
-        drive.tankDrive(-xbox.getRawAxis(1), -xbox.getRawAxis(5));
-        gearswitch.set(DoubleSolenoid.Value.kReverse);
-
-    }
-  
-    if (loop == 2.5 ) {
-      
-        //speed ramp
-        frontLeft.setOpenLoopRampRate(.7);
-        frontRight.setOpenLoopRampRate(.7);
-        rearLeft.setOpenLoopRampRate(.7);
-        rearRight.setOpenLoopRampRate(.7);
-        gearswitch.set(DoubleSolenoid.Value.kReverse);
-
-    }
-
-    if (loop == 3.0) {
-        
-      //speed ramp
-      frontLeft.setOpenLoopRampRate(.5);
-      frontRight.setOpenLoopRampRate(.5);
-      rearLeft.setOpenLoopRampRate(.5);
-      rearRight.setOpenLoopRampRate(.5);
-      gearswitch.set(DoubleSolenoid.Value.kForward);
-      drive.tankDrive(-xbox.getRawAxis(1) * .4, -xbox.getRawAxis(5) * .4);
-
-    }
 
     
       //variable
@@ -791,6 +757,7 @@ public class Robot extends IterativeRobot {
         
           if (xbox.getAButton()) {
               vac.set(1);
+              vacthing.set(true);
           }
         
           else if (xbox.getXButton()) {
@@ -805,7 +772,7 @@ public class Robot extends IterativeRobot {
           }
         
           else if (xbox.getYButton()) {
-              single1.set(true);
+              vacrelease.set(true);
 
           }
         
@@ -849,11 +816,11 @@ public class Robot extends IterativeRobot {
           }
 
           else if(backclimb.get()){
-            back.set(DoubleSolenoid.Value.kReverse);
+            back.set(true);
           }
 
           else if(frontclimb.get()){
-            front.set(DoubleSolenoid.Value.kForward);
+            front.set(true);
           }
     
           else if(xbox.getBumper(GenericHID.Hand.kRight)) {
@@ -889,13 +856,14 @@ public class Robot extends IterativeRobot {
               motor2.set(0);
               motor3.set(0);
         
-              front.set(DoubleSolenoid.Value.kReverse);
-              back.set(DoubleSolenoid.Value.kForward);
+              front.set(false);
+              back.set(false);
 
               intakeR1.set(0);
               intakeL1.set(0);
             
-              single1.set(false);
+              vacrelease.set(false);
+              vacthing.set(false);
 
             
           }
@@ -1441,6 +1409,7 @@ public class Robot extends IterativeRobot {
       
         if (xbox.getAButton()) {
             vac.set(1);
+            vacthing.set(true);
         }
       
         else if (xbox.getXButton()) {
@@ -1455,7 +1424,7 @@ public class Robot extends IterativeRobot {
         }
       
         else if (xbox.getYButton()) {
-            single1.set(true);
+            vacrelease.set(true);
 
         }
       
@@ -1499,11 +1468,11 @@ public class Robot extends IterativeRobot {
         }
 
         else if(backclimb.get()){
-          back.set(DoubleSolenoid.Value.kReverse);
+          back.set(true);
         }
 
         else if(frontclimb.get()){
-          front.set(DoubleSolenoid.Value.kForward);
+          front.set(true);
         }
   
         else if(xbox.getBumper(GenericHID.Hand.kRight)) {
@@ -1539,13 +1508,14 @@ public class Robot extends IterativeRobot {
             motor2.set(0);
             motor3.set(0);
       
-            front.set(DoubleSolenoid.Value.kReverse);
-            back.set(DoubleSolenoid.Value.kForward);
+            front.set(false);
+            back.set(false);
 
             intakeR1.set(0);
             intakeL1.set(0);
           
-            single1.set(false);
+            vacrelease.set(false);
+            vacthing.set(false);
 
           
         }
@@ -1562,12 +1532,4 @@ public class Robot extends IterativeRobot {
   public void testPeriodic() {
   }
 }
-
-
-
-
-
-
-
-
 
