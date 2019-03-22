@@ -8,7 +8,6 @@
 package frc.robot;
 
 import com.ctre.phoenix.motorcontrol.can.WPI_VictorSPX;
-import com.revrobotics.CANEncoder;
 import com.revrobotics.CANSparkMax;
 import com.revrobotics.CANSparkMax.IdleMode;
 import com.revrobotics.CANSparkMaxLowLevel.MotorType;
@@ -84,7 +83,7 @@ public class Robot extends IterativeRobot {
     
   //encoders
   Encoder u1enc, u2enc, u3enc;
-  CANEncoder backencoder, middleencoder, frontencoder;
+  
 
   //setting 0
   //double front0, middle0, back0;
@@ -255,46 +254,12 @@ public class Robot extends IterativeRobot {
       table.putNumber("camMode", 0);
  	  comp.setClosedLoopControl(true);
       loop = 2.0;
-      //resetEncoders();
   }
 
 
   /**
   * This function is called periodically during operator control.
   */
-
- /* public void updateDashboard(){
-  //  double encoderfront = motor1.getEncoder().getPosition();
-    //SmartDashboard.putNumber("rawfront", encoderfront);
-    //double encodermiddle = motor2.getEncoder().getPosition();
-    //SmartDashboard.putNumber("rawmiddle", encodermiddle);
-    double encoderback = motor3.getEncoder().getPosition();
-    SmartDashboard.putNumber("rawback", encoderback);
-    //SmartDashboard.putNumber("GetFront", getFrontEncoder());
-    //SmartDashboard.putNumber("GetMiddle", getMiddleEncoder());
-    SmartDashboard.putNumber("GetBack", getBackEncoder());
-  }
-
-  public void resetEncoders(){
-    //front0 = motor1.getEncoder().getPosition();
-    //middle0 = motor2.getEncoder().getPosition();
-    back0 = motor3.getEncoder().getPosition();
-  }
-
-  /*public double getFrontEncoder(){
-    //double currentposition = motor1.getEncoder().getPosition();
-    //return currentposition - front0;
-  }
-
-  public double getMiddleEncoder(){
-    double currentposition = motor2.getEncoder().getPosition();
-    return currentposition - middle0;
-  }
-
-  public double getBackEncoder(){
-    double currentposition = motor3.getEncoder().getPosition();
-    return currentposition - back0;
-  }*/
 
   @Override
   public void autonomousPeriodic() {
@@ -715,45 +680,44 @@ public class Robot extends IterativeRobot {
     
       if (Currentstage == AutoStage.kBallPickUp) {
 
-
         if (u3enc.get() > 362.5) {
             motor3.set(1);
         }
       
-        if (middleencoder.getPosition() > 321.5) {
+        if (u2enc.get() > 321.5) {
             motor2.set(-1);
         }
       
-        if (frontencoder.getPosition() > 389.0) {
+        if (u1enc.get() > 389.0) {
             motor1.set(1);
         }
       
-        if (u3enc.get() < 362.5 && u3enc.get() > 100) {
+        if (u3enc.get() < 362.5 && u3enc.get() > 75) {
             motor3.set(.4);
         }
       
-        if (middleencoder.getPosition() < 321.5 && middleencoder.getPosition() > 250) {
+        if (u2enc.get() < 321.5 && u2enc.get() > 75) {
             motor2.set(-.4);
         }
       
-        if (frontencoder.getPosition() < 389.0 && frontencoder.getPosition() > 250) {
+        if (u1enc.get() < 389.0 && u1enc.get() > 75) {
             motor1.set(.4);
         }
       
-        if (u3enc.get() <= 100) {
+        if (u3enc.get() <= 75) {
             motor3.set(0);
         }
       
-        if (middleencoder.getPosition() <= 250) {
+        if (u2enc.get() <= 75) {
             motor2.set(0);
         }
       
-        if (frontencoder.getPosition() <= 250) {
+        if (u1enc.get() <= 75) {
             motor1.set(0);
           
         }
       
-        if (u3enc.get() <= 100 ) {
+        if (u3enc.get() <= 75 && u2enc.get() <= 75 && u1enc.get() <= 75 ) {
             Currentstage = AutoStage.kDone;
         }
         
@@ -895,11 +859,12 @@ public class Robot extends IterativeRobot {
   */
   @Override
   public void teleopPeriodic() {
-    //updateDashboard();
+        
+  // updateDashboard();
 
-    //ramp rate
-    if (loop == 2.0) {
-      
+      //ramp rate
+      if (loop == 2.0) {
+        
         //speed ramp
         frontLeft.setOpenLoopRampRate(.5);
         frontRight.setOpenLoopRampRate(.5);
@@ -918,54 +883,6 @@ public class Robot extends IterativeRobot {
         rearRight.setOpenLoopRampRate(.7);
 
     }
-
-
-
-    if (Currentstage == AutoStage.kHighGear){
-      
-      /*if (getFrontEncoder() > 162.5) {
-          motor3.set(1);
-      }
-    
-      if (u2enc.get() > 121.5) {
-          motor2.set(-1);
-      }
-    
-      if (u1enc.get() > 189.0) {
-          motor1.set(1);
-      }*/
-    
-      if (u3enc.get() < 162.5 && u3enc.get() > 50) {
-          motor3.set(.4);
-      }
-    
-     /* if (u2enc.get() < 121.5 && u2enc.get() > 100) {
-          motor2.set(-.4);
-      }
-    
-      if (u1enc.get() < 189.0 && u1enc.get() > 100) {
-          motor1.set(.4);
-      }*/
-    
-      if (u3enc.get() <= 50) {
-          motor3.set(0);
-      }
-    
-     /* if (u2enc.get() <= 100) {
-          motor2.set(0);
-      }
-    
-      if (u1enc.get() <= 100) {
-          motor1.set(0);
-        
-      }
-    
-      if (u3enc.get() <= 100 && u2enc.get() <= 100 && u1enc.get() <= 100) {
-          Currentstage = AutoStage.kDone;
-      }*/
-      
-    }
-
   
     //limelight
     double targetx = table.getNumber("tx", 0); //Horizontal correction
@@ -1045,25 +962,25 @@ public class Robot extends IterativeRobot {
     }
   
     if (Currentstage == AutoStage.kballp) {
-        /*if (u1enc.get() <= 984.75) {
+        if (u1enc.get() <= 984.75) {
             motor1.set(-1);
         }
       
         if (u2enc.get() <= 986.75) {
             motor2.set(1);
         }
-      */
+      
         if (u3enc.get() <= 1079.25) {
             motor3.set(-1);
         }
       
-        /*if (u1enc.get() >= 984.75) {
+        if (u1enc.get() >= 984.75) {
             motor1.set(0);
         }
       
         if (u2enc.get() >= 986.75) {
             motor2.set(0);
-        }*/
+        }
       
         if (u3enc.get() >= 1079.25) {
             motor3.set(0);
@@ -1081,7 +998,7 @@ public class Robot extends IterativeRobot {
     }
   
     if (Currentstage == AutoStage.kballr1) {
-       /* if (u1enc.get() <= 2049.25) {
+        if (u1enc.get() <= 2049.25) {
             motor1.set(-1);
         }
       
@@ -1089,17 +1006,17 @@ public class Robot extends IterativeRobot {
             motor2.set(1);
         }
       
-       */ if (u3enc.get() <= 2669.0) {
+        if (u3enc.get() <= 2669.0) {
             motor3.set(-1);
         }
       
-       /* if (u1enc.get() >= 2049.25) {
+        if (u1enc.get() >= 2049.25) {
             motor1.set(0);
         }
       
         if (u2enc.get() >= 1958.5) {
             motor2.set(0);
-        }*/
+        }
       
         if (u3enc.get() >= 2669.0) {
             motor3.set(0);
@@ -1117,7 +1034,7 @@ public class Robot extends IterativeRobot {
     }
   
     if (Currentstage == AutoStage.kballr2) {
-      /*  if (u1enc.get() <= 1312.75) {
+        if (u1enc.get() <= 1312.75) {
             motor1.set(-1);
         }
       
@@ -1125,18 +1042,18 @@ public class Robot extends IterativeRobot {
             motor2.set(1);
         }
       
-        */if (u3enc.get() <= 1509) {
+        if (u3enc.get() <= 1509) {
             motor3.set(-1);
         }
       
-        /*if (u1enc.get() >= 1312.75) {
+        if (u1enc.get() >= 1312.75) {
             motor1.set(0);
         }
       
         if (u2enc.get() >= 1292.75) {
             motor2.set(0);
         }
-      */
+      
         if (u3enc.get() >= 1509) {
             motor3.set(0);
         }
@@ -1153,25 +1070,25 @@ public class Robot extends IterativeRobot {
     }
   
     if (Currentstage == AutoStage.kballr3) {
-       /* if (u1enc.get() <= 523.25) {
+        if (u1enc.get() <= 523.25) {
             motor1.set(-1);
         }
       
         if (u2enc.get() <= 433.25) {
             motor2.set(1);
         }
-      */
+      
         if (u3enc.get() <= 623) {
             motor3.set(-1);
         }
       
-      /*  if (u1enc.get() >= 523.25) {
+        if (u1enc.get() >= 523.25) {
             motor1.set(0);
         }
       
         if (u2enc.get() >= 433.25) {
             motor2.set(0);
-        }*/
+        }
       
         if (u3enc.get() >= 623) {
             motor3.set(0);
@@ -1189,7 +1106,7 @@ public class Robot extends IterativeRobot {
     }
   
     if (Currentstage == AutoStage.khatchp) {
-       /* if (u1enc.get() <= 255.5) {
+        if (u1enc.get() <= 255.5) {
             motor1.set(-1);
         }
 
@@ -1211,7 +1128,7 @@ public class Robot extends IterativeRobot {
 
         if (u2enc.get() <= 184.75) {
             motor2.set(-.4);
-        }*/
+        }
       
         if (u3enc.get() <= 242.5) {
             motor3.set(-1);
@@ -1225,13 +1142,13 @@ public class Robot extends IterativeRobot {
             motor3.set(.4);
         }
       
-        /*if (u1enc.get() >= 255.5) {
+        if (u1enc.get() >= 255.5) {
             motor1.set(0);
         }
       
         if (u2enc.get() >= 84.75) {
             motor2.set(0);
-        }*/
+        }
       
         if (u3enc.get() >= 242.5) {
             motor3.set(0);
@@ -1249,25 +1166,25 @@ public class Robot extends IterativeRobot {
     }
   
     if (Currentstage == AutoStage.khatchr1) {
-       /* if (u1enc.get() <= 1775.25) {
+        if (u1enc.get() <= 1775.25) {
             motor1.set(-1);
         }
       
         if (u2enc.get() <= 1992.0) {
             motor2.set(1);
-        }*/
+        }
       
         if (u3enc.get() <= 1829.5) {
             motor3.set(-1);
         }
       
-        /*if (u1enc.get() >= 1775.25) {
+        if (u1enc.get() >= 1775.25) {
             motor1.set(0);
         }
       
         if (u2enc.get() >= 1992.0) {
             motor2.set(0);
-        }*/
+        }
       
         if (u3enc.get() >= 1829.5) {
             motor3.set(0);
@@ -1285,25 +1202,25 @@ public class Robot extends IterativeRobot {
     }
   
     if (Currentstage == AutoStage.khatchr2) {
-        /*if (u1enc.get() <= 1065.25) {
+        if (u1enc.get() <= 1065.25) {
             motor1.set(-1);
         }
       
         if (u2enc.get() <= 1068.0) {
             motor2.set(1);
-        }*/
+        }
       
         if (u3enc.get() <= 1039.25) {
             motor3.set(-1);
         }
       
-       /* if (u1enc.get() >= 1065.25) {
+        if (u1enc.get() >= 1065.25) {
             motor1.set(0);
         }
       
         if (u2enc.get() >= 1068.0) {
             motor2.set(0);
-        }*/
+        }
       
         if (u3enc.get() >= 1039.25) {
             motor3.set(0);
@@ -1321,25 +1238,25 @@ public class Robot extends IterativeRobot {
     }
   
     if (Currentstage == AutoStage.khatchr3) {
-        /*if (u1enc.get() <= 313.25) {
+        if (u1enc.get() <= 313.25) {
             motor1.set(-1);
         }
       
         if (u2enc.get() <= 82.0) {
             motor2.set(1);
-        }*/
+        }
       
         if (u3enc.get() <= 231) {
             motor3.set(-1);
         }
       
-      /*  if (u1enc.get() >= 313.25) {
+        if (u1enc.get() >= 313.25) {
             motor1.set(0);
         }
       
         if (u2enc.get() >= 82.0) {
             motor2.set(0);
-        }*/
+        }
       
         if (u3enc.get() >= 231) {
             motor3.set(0);
@@ -1358,51 +1275,47 @@ public class Robot extends IterativeRobot {
   
     if (Currentstage == AutoStage.kBallPickUp) {
 
-
       if (u3enc.get() > 362.5) {
           motor3.set(1);
       }
     
-     /* if (middleencoder.getPosition() > 321.5) {
+      if (u2enc.get() > 321.5) {
           motor2.set(-1);
       }
     
-      if (frontencoder.getPosition() > 389.0) {
+      if (u1enc.get() > 389.0) {
           motor1.set(1);
-      }*/
+      }
     
-      if (u3enc.get() < 362.5 && u3enc.get() > 100) {
+      if (u3enc.get() < 362.5 && u3enc.get() > 75) {
           motor3.set(.4);
       }
     
-    /*  if (middleencoder.getPosition() < 321.5 && middleencoder.getPosition() > 250) {
+      if (u2enc.get() < 321.5 && u2enc.get() > 75) {
           motor2.set(-.4);
       }
     
-      if (frontencoder.getPosition() < 389.0 && frontencoder.getPosition() > 250) {
+      if (u1enc.get() < 389.0 && u1enc.get() > 75) {
           motor1.set(.4);
-      }*/
+      }
     
-      if (u3enc.get() <= 100) {
+      if (u3enc.get() <= 75) {
           motor3.set(0);
       }
     
-    /*  if (middleencoder.getPosition() <= 250) {
+      if (u2enc.get() <= 75) {
           motor2.set(0);
       }
     
-      if (frontencoder.getPosition() <= 250) {
+      if (u1enc.get() <= 75) {
           motor1.set(0);
         
-      }*/
+      }
     
-      if (u3enc.get() <= 100 ) {
+      if (u3enc.get() <= 75 && u2enc.get() <= 75 && u1enc.get() <= 75 ) {
           Currentstage = AutoStage.kDone;
       }
       
-      
-
-
     }
   
     if (Currentstage == AutoStage.kDone) {
@@ -1435,27 +1348,27 @@ public class Robot extends IterativeRobot {
         }
   
         else if (manualup.get()) {
-       // motor1.set(-1);
-       // motor2.set(1);
+        motor1.set(-1);
+        motor2.set(1);
         motor3.set(-1);
               
         }
   
         else if (manualdown.get()) {
-         //   motor1.set(1);
-           // motor2.set(-1);
-            motor3.set(1);
+         motor1.set(1);
+         motor2.set(-1);
+         motor3.set(1);
           
             if (u3enc.get() <= 50) {
                 motor3.set(0);
             }
           
             if (u2enc.get() <= 40) {
-             //   motor2.set(0);
+                motor2.set(0);
             }
           
             if (u1enc.get() <= 20) {
-               // motor1.set(0);
+                motor1.set(0);
             }
         }
 
@@ -1478,10 +1391,10 @@ public class Robot extends IterativeRobot {
         }
   
         else if(xbox.getBumper(GenericHID.Hand.kRight)) {
+        
         }
   
         else if(xbox.getBumper(GenericHID.Hand.kLeft)) {
-          loop = 2.0;
         }
   
         else if(xbox.getStartButton()) {
@@ -1505,8 +1418,8 @@ public class Robot extends IterativeRobot {
         }
   
         else {
-            //motor1.set(0);
-            //motor2.set(0);
+            motor1.set(0);
+            motor2.set(0);
             motor3.set(0);
       
             front.set(false);
