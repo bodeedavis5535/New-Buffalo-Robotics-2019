@@ -85,6 +85,9 @@ public class Robot extends IterativeRobot {
   Encoder u1enc, u2enc, u3enc;
   CANEncoder backencoder, middleencoder, frontencoder;
 
+  //setting 0
+  double front0, middle0, back0;
+
  
   int timeoutMs = 10;
  
@@ -245,6 +248,7 @@ public class Robot extends IterativeRobot {
       table.putNumber("camMode", 0);
  	  comp.setClosedLoopControl(true);
       loop = 2.0;
+      resetEncoders();
   }
 
   /**
@@ -253,17 +257,41 @@ public class Robot extends IterativeRobot {
 
   public void updateDashboard(){
     double encoderfront = motor1.getEncoder().getPosition();
-    SmartDashboard.putNumber("front", encoderfront);
+    SmartDashboard.putNumber("rawfront", encoderfront);
     double encodermiddle = motor2.getEncoder().getPosition();
-    SmartDashboard.putNumber("middle", encodermiddle);
+    SmartDashboard.putNumber("rawmiddle", encodermiddle);
     double encoderback = motor3.getEncoder().getPosition();
-    SmartDashboard.putNumber("back", encoderback);
+    SmartDashboard.putNumber("rawback", encoderback);
+    SmartDashboard.putNumber("GetFront", getFrontEncoder());
+    SmartDashboard.putNumber("GetMiddle", getMiddleEncoder());
+    SmartDashboard.putNumber("GetBack", getBackEncoder());
+  }
+
+  public void resetEncoders(){
+    front0 = motor1.getEncoder().getPosition();
+    middle0 = motor2.getEncoder().getPosition();
+    back0 = motor3.getEncoder().getPosition();
+  }
+
+  public double getFrontEncoder(){
+    double currentposition = motor1.getEncoder().getPosition();
+    return currentposition - front0;
+  }
+
+  public double getMiddleEncoder(){
+    double currentposition = motor2.getEncoder().getPosition();
+    return currentposition - middle0;
+  }
+
+  public double getBackEncoder(){
+    double currentposition = motor3.getEncoder().getPosition();
+    return currentposition - back0;
   }
 
   @Override
   public void autonomousPeriodic() {
                     
-
+    
     updateDashboard();
 
       //ramp rate
@@ -302,7 +330,7 @@ public class Robot extends IterativeRobot {
 
       if (Currentstage == AutoStage.kHighGear){
         
-        if (u3enc.get() > 162.5) {
+        if (getFrontEncoder() > 162.5) {
             motor3.set(1);
         }
       
@@ -1577,4 +1605,3 @@ public class Robot extends IterativeRobot {
   public void testPeriodic() {
   }
 }
-
