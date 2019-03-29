@@ -1,0 +1,1387 @@
+/*----------------------------------------------------------------------------*/
+/* Copyright (c) 2017-2018 FIRST. All Rights Reserved.                        */
+/* Open Source Software - may be modified and shared by FRC teams. The code   */
+/* must be accompanied by the FIRST BSD license file in the root directory of */
+/* the project.                                                               */
+/*----------------------------------------------------------------------------*/
+
+package frc.robot;
+
+import com.ctre.phoenix.motorcontrol.can.WPI_VictorSPX;
+import com.revrobotics.CANSparkMax;
+import com.revrobotics.CANSparkMax.IdleMode;
+import com.revrobotics.CANSparkMaxLowLevel.MotorType;
+
+import edu.wpi.cscore.UsbCamera;
+import edu.wpi.first.cameraserver.CameraServer;
+import edu.wpi.first.wpilibj.Compressor;
+import edu.wpi.first.wpilibj.DoubleSolenoid;
+import edu.wpi.first.wpilibj.Encoder;
+import edu.wpi.first.wpilibj.GenericHID;
+import edu.wpi.first.wpilibj.IterativeRobot;
+import edu.wpi.first.wpilibj.Joystick;
+import edu.wpi.first.wpilibj.Solenoid;
+import edu.wpi.first.wpilibj.SpeedControllerGroup;
+import edu.wpi.first.wpilibj.Timer;
+import edu.wpi.first.wpilibj.GenericHID.Hand;
+import edu.wpi.first.wpilibj.buttons.JoystickButton;
+import edu.wpi.first.wpilibj.drive.DifferentialDrive;
+import edu.wpi.first.wpilibj.networktables.NetworkTable;
+import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+
+/**
+* The VM is configured to automatically run this class, and to call the
+* functions corresponding to each mode, as described in the IterativeRobot
+* documentation. If you change the name of this class or the package after
+* creating this project, you must also update the build.properties file in the
+* project.
+*/
+@SuppressWarnings({ "deprecation" })
+public class Robot extends IterativeRobot {
+  private static final String kDefaultAuto = "Default";
+  private static final String kCustomAuto = "My Auto";
+  private SendableChooser<String> m_chooser = new SendableChooser<>();
+  NetworkTable table = NetworkTable.getTable("limelight");
+
+   //drive stuff
+  CANSparkMax frontLeft, rearLeft, frontRight, rearRight;
+  SpeedControllerGroup left, right;
+  DifferentialDrive drive;
+
+  int throttleAxis = 1;
+  int wheelAxis = 2;
+ 
+  //pneumatics
+  DoubleSolenoid gearswitch, hatcher;
+  Solenoid vacrelease, front, back, vacthing;
+  Compressor comp = new Compressor(0);
+
+  //camera
+  UsbCamera camera;
+    
+   //timer
+  Timer timer;
+ 
+  //driver
+  Joystick xbox;
+ 
+  //co-driver stuff
+  Joystick panel, panel2;
+  JoystickButton ballr1, ballr2, ballr3, ballc, ballp, hatchr1, hatchr2, hatchr3, hatchungetter, hatchp, hatchc, ballpickup, manualup, manualdown; 
+  JoystickButton startlight1, stoplight, hatchgetter, regcam, limecam, frontclimb, backclimb;
+  WPI_VictorSPX intakeR1, intakeL1;
+
+  //variable
+  Double drivetype;
+
+  //objects for gearswitch
+  Object forward, reverse;
+ 
+  //Extra stuffs
+  WPI_VictorSPX vac;
+ 
+  //Elevator
+  CANSparkMax motor1, motor2, motor3;
+    
+  //encoders
+  Encoder u1enc, u2enc, u3enc;
+  
+
+ 
+   public enum AutoStage {
+      kStart,
+      kCenterOnTarget,
+      kDriveForward,
+      kBallPickUp,
+      kballp,
+      kStop,
+      khatchp,
+      kballr1,
+      kballr2,
+      kballr3,
+      khatchr1,
+      khatchr2,
+      khatchr3,
+      kballc,
+      khatchc,
+      kHighGear,
+      kDone
+  }
+
+
+  AutoStage Currentstage = AutoStage.kDone;
+
+   /**
+  * This function is run when the robot is first started up and should be
+  * used for any initialization code.
+  */
+  @Override
+  public void robotInit() {
+      m_chooser.addDefault("Default Auto", kDefaultAuto);
+      m_chooser.addObject("My Auto", kCustomAuto);
+      SmartDashboard.putData("Auto choices", m_chooser);
+    
+    
+      //drive stuff
+      frontLeft = new CANSparkMax(1, MotorType.kBrushless);
+      frontLeft.setIdleMode(IdleMode.kCoast);
+      rearLeft = new CANSparkMax(2, MotorType.kBrushless);
+      rearLeft.setIdleMode(IdleMode.kCoast);
+      left = new SpeedControllerGroup(frontLeft, rearLeft);
+      frontRight = new CANSparkMax(3, MotorType.kBrushless);
+      frontRight.setIdleMode(IdleMode.kCoast);
+      rearRight = new CANSparkMax(4, MotorType.kBrushless);
+      rearRight.setIdleMode(IdleMode.kCoast);
+      right = new SpeedControllerGroup(frontRight, rearRight);
+      drive = new DifferentialDrive(left, right);
+      frontLeft.setSmartCurrentLimit(40);
+      frontRight.setSmartCurrentLimit(40);
+      rearLeft.setSmartCurrentLimit(40);
+      rearRight.setSmartCurrentLimit(40);
+
+
+    
+      //vacuum
+      vac = new WPI_VictorSPX(5);
+    
+    
+      //compressor
+      comp.setClosedLoopControl(false);
+    
+    
+      //timer
+      timer = new Timer();
+    
+    
+      //driver
+      xbox = new Joystick(0);
+    
+    
+      //co-driver
+      panel = new Joystick(1);
+      panel2 = new Joystick(2);
+
+      ballr1 = new JoystickButton(panel, 1);
+      ballr2 = new JoystickButton(panel, 2);
+      ballr3 = new JoystickButton(panel, 3);
+      hatchr1 = new JoystickButton(panel, 4);
+      hatchr2 = new JoystickButton(panel, 5);
+      hatchr3 = new JoystickButton(panel, 6);
+      manualup = new JoystickButton(panel, 7);
+      manualdown = new JoystickButton(panel, 8);
+      ballpickup = new JoystickButton(panel, 9);
+
+      backclimb = new JoystickButton(panel2, 1);
+      startlight1 = new JoystickButton(panel2, 2);
+      regcam = new JoystickButton(panel2, 3);
+      hatchungetter = new JoystickButton(panel2, 4);
+      frontclimb = new JoystickButton(panel2, 5);
+      limecam = new JoystickButton(panel2, 6);
+      hatchgetter = new JoystickButton(panel2, 7);
+      ballp = new JoystickButton(panel2, 8);
+      hatchp = new JoystickButton(panel2, 9);
+      stoplight = new JoystickButton(panel2, 10);
+
+     
+      //Do we want to make the bot automatically go down when we switch to high gear
+
+      intakeR1 = new WPI_VictorSPX(6);
+      intakeL1 = new WPI_VictorSPX(8);
+
+      
+    
+    
+      //solenoids
+      gearswitch = new DoubleSolenoid(0, 1);
+      hatcher = new DoubleSolenoid(3, 2);
+      vacrelease = new Solenoid(4);
+      front = new Solenoid(5);
+      back = new Solenoid(6);
+     // vacthing = new Solenoid(7);
+    
+      //sparks
+      motor1 = new CANSparkMax(7, MotorType.kBrushless);//front
+      motor2 = new CANSparkMax(9, MotorType.kBrushless);//middle
+      motor3 = new CANSparkMax(10, MotorType.kBrushless);//back
+      motor1.setSmartCurrentLimit(25);
+      motor2.setSmartCurrentLimit(40);
+      motor3.setSmartCurrentLimit(30);
+    
+    
+     
+      //encoders
+      u1enc = new Encoder(0, 1);
+      u1enc.setReverseDirection(true);
+      u2enc = new Encoder(2, 3);
+      u2enc.setReverseDirection(false);
+      u3enc = new Encoder(4, 5);
+      u3enc.setReverseDirection(true);
+
+      drivetype = 2.0;
+
+      camera = CameraServer.getInstance().startAutomaticCapture();
+
+      drive.setSafetyEnabled(false);
+
+
+    
+
+
+  }
+
+  @Override
+  public void robotPeriodic() {
+ 
+        
+    if (drivetype == 2.0){
+    frontLeft.setOpenLoopRampRate(.5);
+    frontRight.setOpenLoopRampRate(.5);
+    rearLeft.setOpenLoopRampRate(.5);
+    rearRight.setOpenLoopRampRate(.5);
+    drive.arcadeDrive(deadband(-xbox.getRawAxis(throttleAxis)), deadband(xbox.getRawAxis(wheelAxis)));
+    }
+
+    if (drivetype == 2.5){
+        frontLeft.setOpenLoopRampRate(.7);
+        frontRight.setOpenLoopRampRate(.7);
+        rearLeft.setOpenLoopRampRate(.7);
+        rearRight.setOpenLoopRampRate(.7);
+    }
+
+    if(xbox.getRawButton(6)) {
+        throttleAxis = 2;
+        wheelAxis = 1;
+    } 
+
+    else if(xbox.getRawButton(5)) {
+        throttleAxis = 1;
+        wheelAxis = 2;
+    }
+    
+}
+  
+  //set deadband
+  public double deadband(double input) {
+      if(Math.abs(input) > /* Deadband */ 0.1) {
+          return input;
+      } 
+      else {
+          return 0.0;
+      }
+  }
+  
+  @Override
+  public void autonomousInit() {
+      u1enc.reset();
+      u2enc.reset();
+      u3enc.reset();
+      Currentstage = AutoStage.kDone;
+      table.putNumber("ledMode", 1);
+      table.putNumber("camMode", 1);
+       comp.setClosedLoopControl(true);
+       throttleAxis = 1;
+       wheelAxis = 2;
+  }
+
+
+  /**
+  * This function is called periodically during operator control.
+  */
+
+  @Override
+  public void autonomousPeriodic() {
+      
+      //limelight
+      double targetx = table.getNumber("tx", 0); //Horizontal correction
+      double targeta = table.getNumber("ta", 0); //Distance correction
+      double targetv = table.getNumber("tv", 0); //Whether there is a target or not
+    
+    
+      if (startlight1.get()) {
+          Currentstage = AutoStage.kStart;
+          drivetype = 2.5;
+      }
+    
+      if (Currentstage == AutoStage.kStart) {
+        
+        
+        
+          System.out.println("kStart");
+        
+        
+          if (targetv == 1) {
+              Currentstage = AutoStage.kCenterOnTarget;
+          }
+        
+          if (targetv == 0) {
+              Currentstage = AutoStage.kDone;
+          }
+        
+
+      }
+    
+      if (Currentstage == AutoStage.kCenterOnTarget) {
+        
+          if (targetv == 0) {
+              Currentstage = AutoStage.kDone;
+          }
+        
+          System.out.println("kCenterOnTarget");
+        
+          drive.arcadeDrive(.9, 0);
+        
+          if (targetx > 1) {
+              drive.arcadeDrive(.9, .38);
+          }
+    
+        
+          if (targetx < -1) {
+              drive.arcadeDrive(.9, -.38);
+          }
+        
+        
+          if (targeta > 3.2) {
+             
+              Currentstage = AutoStage.kDone;
+            
+          }
+        
+
+  }
+
+      //encoders
+      SmartDashboard.putNumber("Up 1 Sensor Position", u1enc.getDistance());
+      SmartDashboard.putNumber("Up 2 Sensor Position", u2enc.getDistance());
+      SmartDashboard.putNumber("Up 3 Sensor Position", u3enc.getDistance());
+
+      if (xbox.getRawButton(3)) {
+          Currentstage = AutoStage.kDone;
+      }
+    
+      if (stoplight.get()) {
+          Currentstage = AutoStage.kDone;
+      }
+    
+      if (ballp.get()) {
+          Currentstage = AutoStage.kballp;
+          table.putNumber("ledMode", 1);
+          table.putNumber("camMode", 1);
+      }
+    
+      if (Currentstage == AutoStage.kballp) {
+          if (u1enc.get() <= 984.75) {
+              motor1.set(-1);
+          }
+        
+          if (u2enc.get() <= 986.75) {
+              motor2.set(1);
+          }
+        
+          if (u3enc.get() <= 1079.25) {
+              motor3.set(-1);
+          }
+        
+          if (u1enc.get() >= 984.75) {
+              motor1.set(0);
+          }
+        
+          if (u2enc.get() >= 986.75) {
+              motor2.set(0);
+          }
+        
+          if (u3enc.get() >= 1079.25) {
+              motor3.set(0);
+          }
+        
+          if (u3enc.get() >= 1079.25 && u2enc.get() >= 986.75 && u1enc.get() >= 984.75) {
+              Currentstage = AutoStage.kDone;
+          }
+      }
+    
+      if (ballr1.get()) {
+     	  Currentstage = AutoStage.kballr1;
+     	  table.putNumber("ledMode", 1);
+          table.putNumber("camMode", 1);
+      }
+    
+      if (Currentstage == AutoStage.kballr1) {
+          if (u1enc.get() <= 2049.25) {
+              motor1.set(-1);
+          }
+        
+          if (u2enc.get() <= 1958.5) {
+              motor2.set(1);
+          }
+        
+          if (u3enc.get() <= 2669.0) {
+              motor3.set(-1);
+          }
+        
+          if (u1enc.get() >= 2049.25) {
+              motor1.set(0);
+          }
+        
+          if (u2enc.get() >= 1958.5) {
+              motor2.set(0);
+          }
+        
+          if (u3enc.get() >= 2669.0) {
+              motor3.set(0);
+          }
+        
+          if (u3enc.get() >= 2669.0 && u2enc.get() >= 1958.5 && u1enc.get() >= 2049.25) {
+              Currentstage = AutoStage.kDone;
+          }
+      }
+    
+      if (ballr2.get()) {
+     	  Currentstage = AutoStage.kballr2;
+     	  table.putNumber("ledMode", 1);
+          table.putNumber("camMode", 1);
+      }
+    
+      if (Currentstage == AutoStage.kballr2) {
+          if (u1enc.get() <= 1312.75) {
+              motor1.set(-1);
+          }
+        
+          if (u2enc.get() <= 1292.75) {
+              motor2.set(1);
+          }
+        
+          if (u3enc.get() <= 1509) {
+              motor3.set(-1);
+          }
+        
+          if (u1enc.get() >= 1312.75) {
+              motor1.set(0);
+          }
+        
+          if (u2enc.get() >= 1292.75) {
+              motor2.set(0);
+          }
+        
+          if (u3enc.get() >= 1509) {
+              motor3.set(0);
+          }
+        
+          if (u3enc.get() >= 1509 && u2enc.get() >= 1292.75 && u1enc.get() >= 1312.75) {
+              Currentstage = AutoStage.kDone;
+          }
+      }
+    
+      if (ballr3.get()) {
+     	  Currentstage = AutoStage.kballr3;
+     	  table.putNumber("ledMode", 0);
+          table.putNumber("camMode", 0);
+      }
+    
+      if (Currentstage == AutoStage.kballr3) {
+          if (u1enc.get() <= 523.25) {
+              motor1.set(-1);
+          }
+        
+          if (u2enc.get() <= 433.25) {
+              motor2.set(1);
+          }
+        
+          if (u3enc.get() <= 623) {
+              motor3.set(-1);
+          }
+        
+          if (u1enc.get() >= 523.25) {
+              motor1.set(0);
+          }
+        
+          if (u2enc.get() >= 433.25) {
+              motor2.set(0);
+          }
+        
+          if (u3enc.get() >= 623) {
+              motor3.set(0);
+          }
+        
+          if (u3enc.get() >= 623 && u2enc.get() >= 433.25 && u1enc.get() >= 523.25) {
+              Currentstage = AutoStage.kDone;
+          }
+      }
+    
+      if (hatchp.get()) {
+          Currentstage = AutoStage.khatchp;
+          table.putNumber("ledMode", 0);
+          table.putNumber("camMode", 0);
+      }
+    
+      if (Currentstage == AutoStage.khatchp) {
+        if (u1enc.get() <= 313.25) {
+            motor1.set(-1);
+        }
+      
+        if (u2enc.get() <= 82.0) {
+            motor2.set(1);
+        }
+      
+        if (u3enc.get() <= 231) {
+            motor3.set(-1);
+        }
+      
+        if (u1enc.get() >= 313.25) {
+            motor1.set(0);
+        }
+      
+        if (u2enc.get() >= 82.0) {
+            motor2.set(0);
+        }
+      
+        if (u3enc.get() >= 231) {
+            motor3.set(0);
+        }
+      
+        if (u3enc.get() >= 231 && u2enc.get() >= 82.0 && u1enc.get() >= 313.25) {
+            Currentstage = AutoStage.kDone;
+        }
+      }
+    
+      if (hatchr1.get()) {
+          Currentstage = AutoStage.khatchr1;
+          table.putNumber("ledMode", 1);
+          table.putNumber("camMode", 1);
+      }
+    
+      if (Currentstage == AutoStage.khatchr1) {
+          if (u1enc.get() <= 1775.25) {
+              motor1.set(-1);
+          }
+        
+          if (u2enc.get() <= 1992.0) {
+              motor2.set(1);
+          }
+        
+          if (u3enc.get() <= 1829.5) {
+              motor3.set(-1);
+          }
+        
+          if (u1enc.get() >= 1775.25) {
+              motor1.set(0);
+          }
+        
+          if (u2enc.get() >= 1992.0) {
+              motor2.set(0);
+          }
+        
+          if (u3enc.get() >= 1829.5) {
+              motor3.set(0);
+          }
+        
+          if (u3enc.get() >= 1829.5 && u2enc.get() >= 1992.0 && u1enc.get() >= 1775.25) {
+              Currentstage = AutoStage.kDone;
+          }
+      }
+    
+      if (hatchr2.get()) {
+          Currentstage = AutoStage.khatchr2;
+          table.putNumber("ledMode", 1);
+          table.putNumber("camMode", 1);
+      }
+    
+      if (Currentstage == AutoStage.khatchr2) {
+          if (u1enc.get() <= 1065.25) {
+              motor1.set(-1);
+          }
+        
+          if (u2enc.get() <= 1068.0) {
+              motor2.set(1);
+          }
+        
+          if (u3enc.get() <= 1039.25) {
+              motor3.set(-1);
+          }
+        
+          if (u1enc.get() >= 1065.25) {
+              motor1.set(0);
+          }
+        
+          if (u2enc.get() >= 1068.0) {
+              motor2.set(0);
+          }
+        
+          if (u3enc.get() >= 1039.25) {
+              motor3.set(0);
+          }
+        
+          if (u3enc.get() >= 1039.25 && u2enc.get() >= 1068.0 && u1enc.get() >= 1065.25) {
+              Currentstage = AutoStage.kDone;
+          }
+      }
+    
+      if (hatchr3.get()) {
+          Currentstage = AutoStage.khatchr3;
+          table.putNumber("ledMode", 1);
+          table.putNumber("camMode", 1);
+      }
+    
+      if (Currentstage == AutoStage.khatchr3) {
+          if (u1enc.get() <= 313.25) {
+              motor1.set(-1);
+          }
+        
+          if (u2enc.get() <= 82.0) {
+              motor2.set(1);
+          }
+        
+          if (u3enc.get() <= 231) {
+              motor3.set(-1);
+          }
+        
+          if (u1enc.get() >= 313.25) {
+              motor1.set(0);
+          }
+        
+          if (u2enc.get() >= 82.0) {
+              motor2.set(0);
+          }
+        
+          if (u3enc.get() >= 231) {
+              motor3.set(0);
+          }
+        
+          if (u3enc.get() >= 231 && u2enc.get() >= 82.0 && u1enc.get() >= 313.25) {
+              Currentstage = AutoStage.kDone;
+          }
+      }
+    
+      if (ballpickup.get()) {
+          Currentstage = AutoStage.kBallPickUp;
+          table.putNumber("ledMode", 1);
+          table.putNumber("camMode", 1);
+      }
+    
+      if (Currentstage == AutoStage.kBallPickUp) {
+
+        if (u3enc.get() > 362.5) {
+            motor3.set(1);
+        }
+      
+        if (u2enc.get() > 321.5) {
+            motor2.set(-1);
+        }
+      
+        if (u1enc.get() > 389.0) {
+            motor1.set(1);
+        }
+      
+        if (u3enc.get() < 362.5 && u3enc.get() > 300) {
+            motor3.set(.4);
+        }
+      
+        if (u2enc.get() < 321.5 && u2enc.get() > 50) {
+            motor2.set(-.4);
+        }
+      
+        if (u1enc.get() < 389.0 && u1enc.get() > 35) {
+            motor1.set(.4);
+        }
+      
+        if (u3enc.get() <= 300) {
+            motor3.set(0);
+        }
+      
+        if (u2enc.get() <= 50) {
+            motor2.set(0);
+        }
+      
+        if (u1enc.get() <= 35) {
+            motor1.set(0);
+          
+        }
+      
+        if (u3enc.get() <= 300 && u2enc.get() <= 50 && u1enc.get() <= 35 ) {
+            Currentstage = AutoStage.kDone;
+        }
+        
+      }
+    
+      if (Currentstage == AutoStage.kDone) {
+                
+          drivetype = 2.0;
+        
+          if (xbox.getRawButton(2)) {
+              vac.set(1);
+            //  vacthing.set(true);
+          }
+        
+          else if (xbox.getRawButton(1)) {
+              vac.set(0);
+             
+                
+          }
+        
+          else if (hatchgetter.get()) {
+              hatcher.set(DoubleSolenoid.Value.kForward);
+
+          }
+        
+          else if (xbox.getRawButton(4)) {
+              vacrelease.set(true);
+            //  vacthing.set(true);
+
+          }
+        
+          else if (hatchungetter.get()) {
+              hatcher.set(DoubleSolenoid.Value.kReverse);
+          }
+    
+          else if (manualup.get()) {
+          motor1.set(-1);
+          motor2.set(1);
+          motor3.set(-1);
+                
+          }
+    
+          else if (manualdown.get()) {
+           motor1.set(1);
+           motor2.set(-1);
+           motor3.set(1);
+            
+              if (u3enc.get() <= 50) {
+                  motor3.set(0);
+              }
+            
+              if (u2enc.get() <= 40) {
+                  motor2.set(0);
+              }
+            
+              if (u1enc.get() <= 20) {
+                  motor1.set(0);
+              }
+          }
+
+          else if(regcam.get()){
+              table.putNumber("ledMode", 1);
+              table.putNumber("camMode", 1);
+          }
+
+          else if(limecam.get()){
+              table.putNumber("ledMode", 0);
+              table.putNumber("camMode", 0);
+          }
+
+          else if(backclimb.get()){
+            back.set(true);
+          }
+
+          else if(frontclimb.get()){
+            front.set(true);
+          }
+    
+          else if(xbox.getPOV() == 90) {
+            table.putNumber("ledMode", 0);
+            table.putNumber("camMode", 0); 
+          }
+    
+          else if(xbox.getPOV(0) == 270 ) {
+            table.putNumber("ledMode", 1);
+            table.putNumber("camMode", 1);  
+          }
+    
+          else if(xbox.getRawButton(10)) {
+              comp.setClosedLoopControl(true);
+          }
+         
+          else if(xbox.getRawButton(9)) {
+              comp.setClosedLoopControl(false);
+          }
+    
+    
+          else if (xbox.getRawButton(8)){
+              intakeR1.set(-.6);
+              intakeL1.set(-.6);
+          }
+
+    
+          else if (xbox.getRawButton(7)){
+              intakeR1.set(1);
+              intakeL1.set(1);
+          }
+    
+          else {
+              motor1.set(0);
+              motor2.set(0);
+              motor3.set(0);
+        
+              front.set(false);
+              back.set(false);
+
+              intakeR1.set(0);
+              intakeL1.set(0);
+            
+              vacrelease.set(false);
+            //  vacthing.set(false);
+
+            
+          }
+      }
+    
+  }
+
+ 
+  @Override
+  public void teleopInit() {
+      Currentstage = AutoStage.kDone;
+      table.putNumber("ledMode", 0);
+      table.putNumber("camMode", 0);
+ 	  comp.setClosedLoopControl(true);
+
+
+  }
+
+  /**
+  * This function is called periodically during operator control.
+  */
+  @Override
+  public void teleopPeriodic() {
+  
+         
+      //limelight
+      double targetx = table.getNumber("tx", 0); //Horizontal correction
+      double targeta = table.getNumber("ta", 0); //Distance correction
+      double targetv = table.getNumber("tv", 0); //Whether there is a target or not
+    
+    
+      if (startlight1.get()) {
+          Currentstage = AutoStage.kStart;
+          drivetype = 2.5;
+      }
+    
+      if (Currentstage == AutoStage.kStart) {
+        
+        
+        
+          System.out.println("kStart");
+        
+        
+          if (targetv == 1) {
+              Currentstage = AutoStage.kCenterOnTarget;
+          }
+        
+          if (targetv == 0) {
+              Currentstage = AutoStage.kDone;
+          }
+        
+
+      }
+    
+      if (Currentstage == AutoStage.kCenterOnTarget) {
+        
+          if (targetv == 0) {
+              Currentstage = AutoStage.kDone;
+          }
+        
+          System.out.println("kCenterOnTarget");
+        
+          drive.arcadeDrive(.9, 0);
+        
+          if (targetx > 1) {
+              drive.arcadeDrive(.9, .38);
+          }
+    
+        
+          if (targetx < -1) {
+              drive.arcadeDrive(.9, -.38);
+          }
+        
+        
+          if (targeta > 3.2) {
+             
+              Currentstage = AutoStage.kDone;
+            
+          }
+        
+
+  }
+
+      //encoders
+      SmartDashboard.putNumber("Up 1 Sensor Position", u1enc.getDistance());
+      SmartDashboard.putNumber("Up 2 Sensor Position", u2enc.getDistance());
+      SmartDashboard.putNumber("Up 3 Sensor Position", u3enc.getDistance());
+
+      if (xbox.getRawButton(3)) {
+          Currentstage = AutoStage.kDone;
+      }
+    
+      if (stoplight.get()) {
+          Currentstage = AutoStage.kDone;
+      }
+    
+      if (ballp.get()) {
+          Currentstage = AutoStage.kballp;
+          table.putNumber("ledMode", 1);
+          table.putNumber("camMode", 1);
+      }
+    
+      if (Currentstage == AutoStage.kballp) {
+          if (u1enc.get() <= 984.75) {
+              motor1.set(-1);
+          }
+        
+          if (u2enc.get() <= 986.75) {
+              motor2.set(1);
+          }
+        
+          if (u3enc.get() <= 1079.25) {
+              motor3.set(-1);
+          }
+        
+          if (u1enc.get() >= 984.75) {
+              motor1.set(0);
+          }
+        
+          if (u2enc.get() >= 986.75) {
+              motor2.set(0);
+          }
+        
+          if (u3enc.get() >= 1079.25) {
+              motor3.set(0);
+          }
+        
+          if (u3enc.get() >= 1079.25 && u2enc.get() >= 986.75 && u1enc.get() >= 984.75) {
+              Currentstage = AutoStage.kDone;
+          }
+      }
+    
+      if (ballr1.get()) {
+     	  Currentstage = AutoStage.kballr1;
+     	  table.putNumber("ledMode", 1);
+          table.putNumber("camMode", 1);
+      }
+    
+      if (Currentstage == AutoStage.kballr1) {
+          if (u1enc.get() <= 2049.25) {
+              motor1.set(-1);
+          }
+        
+          if (u2enc.get() <= 1958.5) {
+              motor2.set(1);
+          }
+        
+          if (u3enc.get() <= 2669.0) {
+              motor3.set(-1);
+          }
+        
+          if (u1enc.get() >= 2049.25) {
+              motor1.set(0);
+          }
+        
+          if (u2enc.get() >= 1958.5) {
+              motor2.set(0);
+          }
+        
+          if (u3enc.get() >= 2669.0) {
+              motor3.set(0);
+          }
+        
+          if (u3enc.get() >= 2669.0 && u2enc.get() >= 1958.5 && u1enc.get() >= 2049.25) {
+              Currentstage = AutoStage.kDone;
+          }
+      }
+    
+      if (ballr2.get()) {
+     	  Currentstage = AutoStage.kballr2;
+     	  table.putNumber("ledMode", 1);
+          table.putNumber("camMode", 1);
+      }
+    
+      if (Currentstage == AutoStage.kballr2) {
+          if (u1enc.get() <= 1312.75) {
+              motor1.set(-1);
+          }
+        
+          if (u2enc.get() <= 1292.75) {
+              motor2.set(1);
+          }
+        
+          if (u3enc.get() <= 1509) {
+              motor3.set(-1);
+          }
+        
+          if (u1enc.get() >= 1312.75) {
+              motor1.set(0);
+          }
+        
+          if (u2enc.get() >= 1292.75) {
+              motor2.set(0);
+          }
+        
+          if (u3enc.get() >= 1509) {
+              motor3.set(0);
+          }
+        
+          if (u3enc.get() >= 1509 && u2enc.get() >= 1292.75 && u1enc.get() >= 1312.75) {
+              Currentstage = AutoStage.kDone;
+          }
+      }
+    
+      if (ballr3.get()) {
+     	  Currentstage = AutoStage.kballr3;
+     	  table.putNumber("ledMode", 0);
+          table.putNumber("camMode", 0);
+      }
+    
+      if (Currentstage == AutoStage.kballr3) {
+          if (u1enc.get() <= 523.25) {
+              motor1.set(-1);
+          }
+        
+          if (u2enc.get() <= 433.25) {
+              motor2.set(1);
+          }
+        
+          if (u3enc.get() <= 623) {
+              motor3.set(-1);
+          }
+        
+          if (u1enc.get() >= 523.25) {
+              motor1.set(0);
+          }
+        
+          if (u2enc.get() >= 433.25) {
+              motor2.set(0);
+          }
+        
+          if (u3enc.get() >= 623) {
+              motor3.set(0);
+          }
+        
+          if (u3enc.get() >= 623 && u2enc.get() >= 433.25 && u1enc.get() >= 523.25) {
+              Currentstage = AutoStage.kDone;
+          }
+      }
+    
+      if (hatchp.get()) {
+          Currentstage = AutoStage.khatchp;
+          table.putNumber("ledMode", 0);
+          table.putNumber("camMode", 0);
+      }
+    
+      if (Currentstage == AutoStage.khatchp) {
+        if (u1enc.get() <= 313.25) {
+            motor1.set(-1);
+        }
+      
+        if (u2enc.get() <= 82.0) {
+            motor2.set(1);
+        }
+      
+        if (u3enc.get() <= 231) {
+            motor3.set(-1);
+        }
+      
+        if (u1enc.get() >= 313.25) {
+            motor1.set(0);
+        }
+      
+        if (u2enc.get() >= 82.0) {
+            motor2.set(0);
+        }
+      
+        if (u3enc.get() >= 231) {
+            motor3.set(0);
+        }
+      
+        if (u3enc.get() >= 231 && u2enc.get() >= 82.0 && u1enc.get() >= 313.25) {
+            Currentstage = AutoStage.kDone;
+        }
+      }
+    
+      if (hatchr1.get()) {
+          Currentstage = AutoStage.khatchr1;
+          table.putNumber("ledMode", 1);
+          table.putNumber("camMode", 1);
+      }
+    
+      if (Currentstage == AutoStage.khatchr1) {
+          if (u1enc.get() <= 1775.25) {
+              motor1.set(-1);
+          }
+        
+          if (u2enc.get() <= 1992.0) {
+              motor2.set(1);
+          }
+        
+          if (u3enc.get() <= 1829.5) {
+              motor3.set(-1);
+          }
+        
+          if (u1enc.get() >= 1775.25) {
+              motor1.set(0);
+          }
+        
+          if (u2enc.get() >= 1992.0) {
+              motor2.set(0);
+          }
+        
+          if (u3enc.get() >= 1829.5) {
+              motor3.set(0);
+          }
+        
+          if (u3enc.get() >= 1829.5 && u2enc.get() >= 1992.0 && u1enc.get() >= 1775.25) {
+              Currentstage = AutoStage.kDone;
+          }
+      }
+    
+      if (hatchr2.get()) {
+          Currentstage = AutoStage.khatchr2;
+          table.putNumber("ledMode", 1);
+          table.putNumber("camMode", 1);
+      }
+    
+      if (Currentstage == AutoStage.khatchr2) {
+          if (u1enc.get() <= 1065.25) {
+              motor1.set(-1);
+          }
+        
+          if (u2enc.get() <= 1068.0) {
+              motor2.set(1);
+          }
+        
+          if (u3enc.get() <= 1039.25) {
+              motor3.set(-1);
+          }
+        
+          if (u1enc.get() >= 1065.25) {
+              motor1.set(0);
+          }
+        
+          if (u2enc.get() >= 1068.0) {
+              motor2.set(0);
+          }
+        
+          if (u3enc.get() >= 1039.25) {
+              motor3.set(0);
+          }
+        
+          if (u3enc.get() >= 1039.25 && u2enc.get() >= 1068.0 && u1enc.get() >= 1065.25) {
+              Currentstage = AutoStage.kDone;
+          }
+      }
+    
+      if (hatchr3.get()) {
+          Currentstage = AutoStage.khatchr3;
+          table.putNumber("ledMode", 1);
+          table.putNumber("camMode", 1);
+      }
+    
+      if (Currentstage == AutoStage.khatchr3) {
+          if (u1enc.get() <= 313.25) {
+              motor1.set(-1);
+          }
+        
+          if (u2enc.get() <= 82.0) {
+              motor2.set(1);
+          }
+        
+          if (u3enc.get() <= 231) {
+              motor3.set(-1);
+          }
+        
+          if (u1enc.get() >= 313.25) {
+              motor1.set(0);
+          }
+        
+          if (u2enc.get() >= 82.0) {
+              motor2.set(0);
+          }
+        
+          if (u3enc.get() >= 231) {
+              motor3.set(0);
+          }
+        
+          if (u3enc.get() >= 231 && u2enc.get() >= 82.0 && u1enc.get() >= 313.25) {
+              Currentstage = AutoStage.kDone;
+          }
+      }
+    
+      if (ballpickup.get()) {
+          Currentstage = AutoStage.kBallPickUp;
+          table.putNumber("ledMode", 1);
+          table.putNumber("camMode", 1);
+      }
+    
+      if (Currentstage == AutoStage.kBallPickUp) {
+
+        if (u3enc.get() > 362.5) {
+            motor3.set(1);
+        }
+      
+        if (u2enc.get() > 321.5) {
+            motor2.set(-1);
+        }
+      
+        if (u1enc.get() > 389.0) {
+            motor1.set(1);
+        }
+      
+        if (u3enc.get() < 362.5 && u3enc.get() > 300) {
+            motor3.set(.4);
+        }
+      
+        if (u2enc.get() < 321.5 && u2enc.get() > 50) {
+            motor2.set(-.4);
+        }
+      
+        if (u1enc.get() < 389.0 && u1enc.get() > 35) {
+            motor1.set(.4);
+        }
+      
+        if (u3enc.get() <= 300) {
+            motor3.set(0);
+        }
+      
+        if (u2enc.get() <= 50) {
+            motor2.set(0);
+        }
+      
+        if (u1enc.get() <= 35) {
+            motor1.set(0);
+          
+        }
+      
+        if (u3enc.get() <= 300 && u2enc.get() <= 50 && u1enc.get() <= 35 ) {
+            Currentstage = AutoStage.kDone;
+        }
+        
+      }
+    
+      if (Currentstage == AutoStage.kDone) {
+                
+          drivetype = 2.0;
+        
+          if (xbox.getRawButton(2)) {
+              vac.set(1);
+            //  vacthing.set(true);
+          }
+        
+          else if (xbox.getRawButton(1)) {
+              vac.set(0);
+             
+                
+          }
+        
+          else if (hatchgetter.get()) {
+              hatcher.set(DoubleSolenoid.Value.kForward);
+
+          }
+        
+          else if (xbox.getRawButton(4)) {
+              vacrelease.set(true);
+            //  vacthing.set(true);
+
+          }
+        
+          else if (hatchungetter.get()) {
+              hatcher.set(DoubleSolenoid.Value.kReverse);
+          }
+    
+          else if (manualup.get()) {
+          motor1.set(-1);
+          motor2.set(1);
+          motor3.set(-1);
+                
+          }
+    
+          else if (manualdown.get()) {
+           motor1.set(1);
+           motor2.set(-1);
+           motor3.set(1);
+            
+              if (u3enc.get() <= 50) {
+                  motor3.set(0);
+              }
+            
+              if (u2enc.get() <= 40) {
+                  motor2.set(0);
+              }
+            
+              if (u1enc.get() <= 20) {
+                  motor1.set(0);
+              }
+          }
+
+          else if(regcam.get()){
+              table.putNumber("ledMode", 1);
+              table.putNumber("camMode", 1);
+          }
+
+          else if(limecam.get()){
+              table.putNumber("ledMode", 0);
+              table.putNumber("camMode", 0);
+          }
+
+          else if(backclimb.get()){
+            back.set(true);
+          }
+
+          else if(frontclimb.get()){
+            front.set(true);
+          }
+    
+          else if(xbox.getRawButton(6)) {
+            table.putNumber("ledMode", 0);
+            table.putNumber("camMode", 0); 
+          }
+    
+          else if(xbox.getRawButton(5)) {
+            table.putNumber("ledMode", 1);
+            table.putNumber("camMode", 1);  
+          }
+    
+          else if(xbox.getRawButton(10)) {
+              comp.setClosedLoopControl(true);
+          }
+         
+          else if(xbox.getRawButton(9)) {
+              comp.setClosedLoopControl(false);
+          }
+    
+    
+          else if (xbox.getRawButton(8)){
+              intakeR1.set(-.6);
+              intakeL1.set(-.6);
+          }
+
+    
+          else if (xbox.getRawButton(7)){
+              intakeR1.set(1);
+              intakeL1.set(1);
+          }
+    
+          else {
+              motor1.set(0);
+              motor2.set(0);
+              motor3.set(0);
+        
+              front.set(false);
+              back.set(false);
+
+              intakeR1.set(0);
+              intakeL1.set(0);
+            
+              vacrelease.set(false);
+            //  vacthing.set(false);
+
+            
+          }
+      }
+    
+    
+  }
+ 
+
+  /**
+  * This function is called periodically during test mode.
+  */
+  @Override
+  public void testPeriodic() {
+  }
+}
